@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Photosynthesis Game</title>
+<style>
+  body {
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(to top,#6ecf68,#bdf7ff);
+    text-align:center;
+  }
+  h1{color:#2f4f4f;padding:10px;}
+  #gameArea{
+    width:500px;height:500px;margin:0 auto;
+    background:#d2f8d2;border:2px solid #333;
+    position:relative;overflow:hidden;
+    border-radius:10px;
+  }
+  .player{
+    position:absolute;
+    bottom:10px;left:220px;
+    font-size:40px;
+  }
+  .collectible,.obstacle{
+    position:absolute;
+    font-size:28px;
+  }
+  #hud{margin-top:10px;font-size:18px;}
+  #equation{
+    margin-top:15px;font-size:18px;font-weight:bold;
+  }
+</style>
+</head>
+<body>
+<h1>🌞 Photosynthesis Game 🌿</h1>
+
+<div id="gameArea">
+  <div id="player" class="player">🌳</div>
+</div>
+
+<div id="hud">
+  Score: <span id="score">0</span> | 
+  Energy: <span id="energy">0</span>
+</div>
+
+<div id="equation">
+  Equation: 6 CO₂ + 6 H₂O + Sunlight → C₆H₁₂O₆ + 6 O₂
+</div>
+
+<script>
+const game=document.getElementById("gameArea");
+const player=document.getElementById("player");
+let score=0,energy=0;
+let keys={},obstacles=[],collectibles=[];
+let gameOver=false;
+
+// Sounds
+const collectSound=new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+const glucoseSound=new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+
+// Spawn collectible (☀ sunlight or 💧 water)
+function spawnCollectible(){
+  if(gameOver) return;
+  let c=document.createElement("div");
+  c.className="collectible";
+
+  // Random type: sunlight or water
+  if(Math.random() < 0.5){
+    c.innerText="☀"; 
+    c.type="sun";
+  } else {
+    c.innerText="💧"; 
+    c.type="water";
+  }
+
+  c.x=Math.random()*(game.clientWidth-30);
+  c.y=0;
+  c.style.left=c.x+"px";
+  c.style.top=c.y+"px";
+  game.appendChild(c);
+  collectibles.push(c);
+}
+
+// Spawn obstacle (🌫 CO₂ cloud)
+function spawnObstacle(){
+  if(gameOver) return;
+  let o=document.createElement("div");
+  o.className="obstacle";
+  o.innerText="🌫";
+  o.x=Math.random()*(game.clientWidth-30);
+  o.y=0;
+  o.style.left=o.x+"px";
+  o.style.top=o.y+"px";
+  game.appendChild(o);
+  obstacles.push(o);
+}
+
+// Update loop
+function update(){
+  if(gameOver) return;
+
+  // Player move with bounds
+  if(keys["ArrowLeft"] && player.offsetLeft>0){
+    player.style.left=(player.offsetLeft-5)+"px";
+  }
+  if(keys["ArrowRight"] && player.offsetLeft<game.clientWidth-player.clientWidth){
+    player.style.left=(player.offsetLeft+5)+"px";
+  }
+
+  // Collectibles
+  for(let i=collectibles.length-1;i>=0;i--){
+    let c=collectibles[i];
+    c.y+=3; 
+    c.style.top=c.y+"px";
+    if(c.y>game.clientHeight){
+      c.remove();collectibles.splice(i,1);
+      continue;
+    }
+    if(isColliding(player,c)){
+      score+=10; energy+=5;
+      collectSound.currentTime=0;collectSound.play();
+      glucoseSound.currentTime=0;glucoseSound.play();
+      c.remove();collectibles.splice(i,1);
+    }
+  }
+
+  // Obstacles
+  for(let i=obstacles.length-1;i>=0;i--){
+    let o=obstacles[i];
+    o.y+=2; 
+    o.style.top=o.y+"px";
+    if(o.y>game.clientHeight){
+      o.remove();obstacles.splice(i,1);
+      continue;
+    }
+    if(isColliding(player,o)){
+      score-=5; energy=Math.max(0,energy-5);
+      o.remove();obstacles.splice(i,1);
+    }
+  }
+
+  // HUD
+  document.getElementById("score").innerText=score;
+  document.getElementById("energy").innerText=energy;
+
+  // Game Over check
+  if(energy<=0 && score<0){
+    gameOver=true;
+    setTimeout(()=>alert("Game Over! Final Score: "+score),100);
+  }
+}
+
+// Collision helper
+function isColliding(a,b){
+  let ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();
+  return !(ar.right<br.left||ar.left>br.right||ar.bottom<br.top||ar.top>br.bottom);
+}
+
+// Controls
+document.addEventListener("keydown",e=>{keys[e.key]=true;});
+document.addEventListener("keyup",e=>{keys[e.key]=false;});
+
+// Game loops
+setInterval(update,30);
+setInterval(spawnObstacle,1500);
+setInterval(spawnCollectible,1000);
+</script>
+</body>
+</html>
